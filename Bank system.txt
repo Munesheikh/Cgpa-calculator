@@ -1,0 +1,175 @@
+#include <iostream>
+#include <vector>
+#include <string>
+#include <ctime>
+#include <sstream>
+#include <iomanip>
+
+using namespace std;
+
+// Transaction Class
+class Transaction {
+public:
+    string transactionID;
+    string fromAccount;
+    string toAccount;
+    double amount;
+    string date;
+    string transactionType;
+
+    Transaction(string from, string to, double amt, string type) {
+        fromAccount = from;
+        toAccount = to;
+        amount = amt;
+        transactionType = type;
+
+        // Generate current date and time
+        time_t now = time(0);
+        struct tm* timeinfo = localtime(&now);
+        stringstream ss;
+        ss << 1900 + timeinfo->tm_year << "-" 
+           << setw(2) << setfill('0') << 1 + timeinfo->tm_mon << "-"
+           << setw(2) << setfill('0') << timeinfo->tm_mday << " "
+           << setw(2) << setfill('0') << timeinfo->tm_hour << ":"
+           << setw(2) << setfill('0') << timeinfo->tm_min << ":"
+           << setw(2) << setfill('0') << timeinfo->tm_sec;
+        date = ss.str();
+
+        // Generate a simple transaction ID
+        transactionID = "TXN" + to_string(rand() % 1000000);
+    }
+
+    void displayTransactionDetails() {
+        cout << "Transaction ID: " << transactionID << endl;
+        cout << "From Account: " << fromAccount << endl;
+        cout << "To Account: " << toAccount << endl;
+        cout << "Amount: $" << amount << endl;
+        cout << "Transaction Type: " << transactionType << endl;
+        cout << "Date: " << date << endl;
+        cout << "----------------------------------" << endl;
+    }
+};
+
+// Account Class
+class Account {
+public:
+    string accountNumber;
+    double balance;
+    vector<Transaction> transactionHistory;
+
+    Account(string accNumber) {
+        accountNumber = accNumber;
+        balance = 0.0;
+    }
+
+    void deposit(double amount) {
+        balance += amount;
+        Transaction txn(accountNumber, accountNumber, amount, "Deposit");
+        transactionHistory.push_back(txn);
+    }
+
+    bool withdraw(double amount) {
+        if (balance >= amount) {
+            balance -= amount;
+            Transaction txn(accountNumber, accountNumber, amount, "Withdrawal");
+            transactionHistory.push_back(txn);
+            return true;
+        } else {
+            cout << "Insufficient funds for withdrawal!" << endl;
+            return false;
+        }
+    }
+
+    bool transfer(Account& toAccount, double amount) {
+        if (balance >= amount) {
+            balance -= amount;
+            toAccount.deposit(amount);
+            Transaction txn(accountNumber, toAccount.accountNumber, amount, "Transfer");
+            transactionHistory.push_back(txn);
+            toAccount.transactionHistory.push_back(txn);
+            return true;
+        } else {
+            cout << "Insufficient funds for transfer!" << endl;
+            return false;
+        }
+    }
+
+    double getBalance() {
+        return balance;
+    }
+
+    void getTransactionHistory() {
+        if (transactionHistory.empty()) {
+            cout << "No transactions found!" << endl;
+        } else {
+            for (auto txn : transactionHistory) {
+                txn.displayTransactionDetails();
+            }
+        }
+    }
+};
+
+// Customer Class
+class Customer {
+public:
+    string customerID;
+    string name;
+    string email;
+    string phone;
+    vector<Account> accounts;
+
+    Customer(string id, string customerName, string customerEmail, string customerPhone) {
+        customerID = id;
+        name = customerName;
+        email = customerEmail;
+        phone = customerPhone;
+    }
+
+    void createAccount(string accountNumber) {
+        Account newAccount(accountNumber);
+        accounts.push_back(newAccount);
+    }
+
+    void displayCustomerDetails() {
+        cout << "Customer ID: " << customerID << endl;
+        cout << "Name: " << name << endl;
+        cout << "Email: " << email << endl;
+        cout << "Phone: " << phone << endl;
+    }
+
+    Account* getAccountByNumber(string accountNumber) {
+        for (auto& account : accounts) {
+            if (account.accountNumber == accountNumber) {
+                return &account;
+            }
+        }
+        return nullptr;
+    }
+};
+
+int main() {
+    Customer customer1("C123", "John Doe", "john@example.com", "1234567890");
+    customer1.createAccount("A001");
+
+    Account* account = customer1.getAccountByNumber("A001");
+
+    if (account) {
+        account->deposit(1000);
+        account->withdraw(200);
+        Account account2("A002");
+        account2.deposit(500);
+        account->transfer(account2, 300);
+
+        cout << "Customer Details: " << endl;
+        customer1.displayCustomerDetails();
+
+        cout << "Account Balance: $" << account->getBalance() << endl;
+
+        cout << "\nTransaction History: " << endl;
+        account->getTransactionHistory();
+    } else {
+        cout << "Account not found!" << endl;
+    }
+
+    return 0;
+}
